@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang='en-GB'>
+
+<head>
+  <meta charset='utf-8'>
+  <title>CSG Field</title>
+
+  <style>
+    path {
+      fill: #ccc;
+      stroke: #fff;
+      stroke-width: .5px;
+    }
+    path:hover {
+      fill: red;
+    }
+  </style>
+
+  <script src='node_modules/ractive/ractive.js' type='text/javascript'></script>
+  <script src='node_modules/d3/d3.js'></script>
+  <script src='node_modules/topojson/topojson.js'></script>
+
+</head>
+
+<body>
+
+  <h1>CSG Field</h1>
+
+  <div id='container'></div>
+
+  <script id='template' type='text/ractive'>
+    <p>Region, {{state}}!</p>
+    <p>Selected city, {{selectedCity}}!</p>
+  </script>
+
+
+  <script type='text/javascript'>
+
+    // Set the width and height of the rendered view
+
+    var width = 800;
+    var height = 600;
+
+    // Set up geographical projection to Albers and
+    // center Australia on the map.
+    var projection = d3.geo.albers()
+      .translate([width/2, height/2])
+      .center([0, -25])
+      .rotate([-132.5, 0])
+      .scale(850)
+      .parallels([-36, -18]);
+
+    // Set up new path, projection
+    var path = d3.geo.path()
+      .projection(projection);
+
+    // Create new SVG
+    var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    var g = svg.append("g");
+
+    // Load new map from JSON file
+    d3.json("data/australia.json", function(json) {
+
+      var toto = topojson.feature(json, json.objects.australia).features;
+
+      // Display state_code information on the console
+      for (var i = 0; i < toto.length; i++)
+      {
+        console.log(toto[i].properties.state, toto[i].properties.state_code);
+      }
+
+      // create new path based on data and attach mouse interations to it
+      g.selectAll("path")
+        .data(toto)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .on("mouseover", function(d) {
+          console.log("mouseover path", d.properties.state);
+          ractive.set("state", d.properties.state);
+        });
+
+      // load data about geographical coordinates of cities from CSV file
+      d3.csv("data/cities2.csv", function(data) {
+
+        for (var j = 0; j < data.length; j++)
+        {
+          console.log(j);
+        }
+
+        // display a circle in the place of city
+        // size of the circle to be proportional to its population
+        // when the mouse is over the circle, display its name in console
+        svg.selectAll("circle")
+          .data(data)
+          .enter()
+          .append("circle")
+          .attr("cx", function(d) {
+            return projection([d.lon, d.lat])[0];
+          })
+          .attr("cy", function(d) {
+            return projection([d.lon, d.lat])[1];
+          })
+          .attr("r", function(d) {
+            return Math.sqrt(parseInt(d.population)*0.00003);
+          })
+          .style("fill", "yellow")
+          .style("opacity", 0.85)
+          .on("mouseover", function(d) {
+            console.log("mouseover city", d.place);
+            ractive.set("selectedCity", d.place);
+          });
+
+      });
+
+    });
+
+  </script>
+
+  <script>
+
+    var ractive = new Ractive( {
+      el: '#container',
+      template: '#template',
+      data: { state: 'Queensland', selectedCity: 'Hello' },
+      init: function() {
+        console.log('new container initialised');
+      }
+    });
+  </script>
+
+</body>
+
+</html>

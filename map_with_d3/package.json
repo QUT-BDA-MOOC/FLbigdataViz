@@ -1,0 +1,18 @@
+{
+  "name" : "QUTMOOC",
+  "version" : "0.0.1",
+  "description": "QUTMOOC",
+  "author" : "Tomasz Bednarz <tomasz.bednarz@qut.edu.au>",
+  "contributors" : [],
+  "repository": {
+    "type": "git"
+  },
+  "dependencies": {
+    "angular": "~1.4.0",
+    "d3": "~3.5.5",
+    "topojson": "1.6.16",
+    "ractive": "~0.7.3"
+  },
+  "license": "MIT"
+}
+
