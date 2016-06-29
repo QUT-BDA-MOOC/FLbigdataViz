@@ -1,0 +1,122 @@
+//setup
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  fill: none;
+  stroke: #555;
+}
+.node {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+</style>
+<body>
+<script src="scripts/d3.js"></script>
+<script>
+// setup drawing size
+var width = 5500,
+    height = 5500;
+
+// setup the colour scheme used for colouring the nodes
+var color = d3.scale.category20();
+
+	
+// Create a new force layout object by specifying the link distance and strength, and the size of the domain.
+var force = d3.layout.force()
+    .linkDistance(10)
+    .linkStrength(5)
+    .size([width, height]);
+
+// Add svg drawing with specified width and height attributes. This is the canvas where the graph will be drawn.
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+// load the graph dataset in json format
+d3.json("../data/graph.json", function(error, graph) {
+  if (error) throw error;
+// get the nodes from the graph dataset. Can you think of a way to remove the unimportant nodes at this step?
+  var nodes = graph.nodes.slice(),
+      links = [],
+      bilinks = [];
+// build the links between nodes, using an intermediate node to create curved edges
+  graph.links.forEach(function(link) {
+    var s = nodes[link.source],
+        t = nodes[link.target],
+        i = {}; // intermediate node
+    nodes.push(i); // add the intermediate nodes to the set of nodes
+	// create links between the source node and the intermediate node, 
+	// and the intermediate node and the destination node.
+    links.push({source: s, target: i}, {source: i, target: t}); 
+    bilinks.push([s, i, t]);
+  });
+  // add the nodes and links then start the force layout simulations
+  force
+      .nodes(nodes)
+      .links(links)
+      .start();
+  // setup style of links
+  var link = svg.selectAll(".link")
+      .data(bilinks)
+    .enter().append("path")
+      .attr("class", "link");
+  // setup tooltip for displaying url
+  var tooltip = d3.select("body")
+	.append("div")
+	.attr("class", "tooltip")
+	.style("position", "absolute")
+	.style("z-index", "10")
+	.style("font-size", 50)
+	.style("visibility", "hidden");	 
+	
+/* This section of code specifies how the nodes will be drawn. 
+All of the nodes are selected and are represented by a circle, 
+with a radius proportional to the page ranking that is stored 
+in the graph.json data file. The opacity is also mapped directly
+to the page rank, so unimportant web pages are not visible in the 
+visualisation.
+*/
+  var node = svg.selectAll(".node")
+      .data(graph.nodes)
+    .enter().append("circle")
+      .attr("class", "node")
+      .attr("r", function (d) {return 150 * d.rank;}) // scale the radius by the calculated page ranking
+      .style("fill", function(d) { return color(d.group); })
+ .style("opacity", function(d) { return 2.5 * d.rank; }) // opacity specified by page ranking
+ // Add tooltips to display url on mouseover
+ .on("mouseover", function(d) {
+	tooltip.transition()
+		   .style("left", d.x)		
+           .style("top", d.y)
+		   .text(d.name)
+		   .style("visibility", "visible");
+ })
+ .on("mouseout", function(d) {
+	tooltip.transition()
+		   .style("left", d.x)		
+           .style("top", d.y)
+		   .style("visibility", "hidden");
+	})
+      .call(force.drag);			
+ 
+
+// This section updates the drawing of the graph as the force calculations are processed. 
+// The links and nodes are transformed based on x and y values
+  force.on("tick", function() {
+    link.attr("d", function(d) {
+      return "M" + d[0].x + "," + d[0].y
+          + "S" + d[1].x + "," + d[1].y
+          + " " + d[2].x + "," + d[2].y;
+    });
+    node.attr("transform", function(d) {
+      return "translate(" + d.x + "," + d.y + ")";
+    });
+  });
+});
+
+
+</script>
+</body>
